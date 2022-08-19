@@ -24,11 +24,11 @@ def parseInput():
     parser.add_argument("--numModes",type=int,default=1) # number of modes to solve for
     parser.add_argument("--folderName",type=str,default='') # where to output the results to. Note: Must have / at the end.
     parser.add_argument("--filenamePrefix",type=str,default='')   # whether or not this is a testing run for debugging
-    
+
     args = parser.parse_args()
     dict = vars(args)
     for attribute, value in dict.items():
-        print('{} : {}'.format(attribute, value))
+        print(f'{attribute} : {value}')
 
     # Clean input
     for key,value in dict.items():
@@ -37,10 +37,7 @@ def parseInput():
         elif dict[key]=="True":
             dict[key] = True
         try:
-            if dict[key].is_integer():
-                dict[key] = int(dict[key])
-            else:
-                dict[key] = float(dict[key])
+            dict[key] = int(dict[key]) if dict[key].is_integer() else float(dict[key])
         except:
             pass
 
@@ -48,11 +45,10 @@ def parseInput():
 
     # Ensure output directory exists
     folderName = dict['folderName']
-    if folderName is not '':
-        if not os.path.exists(folderName):
-            os.makedirs(folderName)
+    if folderName is not '' and not os.path.exists(folderName):
+        os.makedirs(folderName)
     # Save dictionary to text file in location specified
-    with open(folderName + 'params.txt', 'w') as file:
+    with open(f'{folderName}params.txt', 'w') as file:
         file.write(json.dumps(kwargs))
     # Output
     return kwargs
@@ -75,7 +71,7 @@ def makeGrid(xs,hs):
 # ---------------------------------------------------------------------------- #
 
 def runSimulation(wavelength,width,thickness,sidewallAngle,dcore,dcladding,xWidth,yWidth,numModes=1):
-    
+
     # Set up the waveguide geometry
     sidewallAngle_radians = sidewallAngle / 180 * np.pi
     bottomFace = width + 2*(thickness/np.tan(sidewallAngle_radians))
@@ -122,8 +118,7 @@ def runSimulation(wavelength,width,thickness,sidewallAngle,dcore,dcladding,xWidt
 
 
     k0, Ex = sim.getFieldComponent('hr',0)
-    neff = k0 / (2*np.pi/wavelength)
-    return neff
+    return k0 / (2*np.pi/wavelength)
 
 
 # ---------------------------------------------------------------------------- #
@@ -146,8 +141,7 @@ if __name__ == "__main__":
 
 
     # Setup the sweep
-    p = {}
-    p['wavelength']     = np.linspace(1.45, 1.65, 100)
+    p = {'wavelength': np.linspace(1.45, 1.65, 100)}
     p['width']          = np.linspace(0.4, 0.6, 20)
     p['thickness']      = np.linspace(0.18, 0.24, 10)
     p['sidewallAngle']  = np.linspace(80, 90, 10)
@@ -156,7 +150,7 @@ if __name__ == "__main__":
 
     numCombinations = s.count_total_combinations()
     blockSize = int(numCombinations / numJobs + 0.5)
-    
+
     # Preallocate the data arrays
     neff          = np.zeros((blockSize,numModes),dtype=np.complex128)
     wavelength    = np.zeros((blockSize,))
@@ -167,8 +161,7 @@ if __name__ == "__main__":
     # Run the job
     start = jobNumber*blockSize
     stop  = (jobNumber + 1) * blockSize
-    k     = 0
-    for params in s.params(start, stop):
+    for k, params in enumerate(s.params(start, stop)):
         # save the parameters
         wavelength[k]    = params['wavelength']
         width[k]         = params['width']
@@ -177,7 +170,6 @@ if __name__ == "__main__":
 
         # run the iteration
         neff[k,0] = runSimulation(**params,dcore=dcore,dcladding=dcladding,xWidth=xWidth,yWidth=yWidth)
-        k += 1
     print(neff)
     # Save the data
     np.savez(folderName + filenamePrefix + '_data.npz',wavelength=wavelength,width=width,thickness=thickness,sidewallAngle=sidewallAngle,neff=neff)

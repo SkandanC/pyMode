@@ -75,7 +75,7 @@ class Simulation:
         # ensure folder is created (if requested)
         self.folderName = folderName
         if folderName:
-            self.folderName = folderName + '/'
+            self.folderName = f'{folderName}/'
             if not os.path.exists(folderName):
                 os.makedirs(folderName)
 
@@ -88,14 +88,10 @@ class Simulation:
         self.writeGeometry()
 
         # formulate the shell command
-        if self.folderName == "":
-            command = ""
-        else:
-            command = "cd " + self.folderName + " && "
-        
+        command = "" if self.folderName == "" else f"cd {self.folderName} && "
         # add in mpi
         if self.nprocs is not None:
-            command += "mpirun -np {} wgms3d".format(int(self.nprocs))
+            command += f"mpirun -np {int(self.nprocs)} wgms3d"
         else:
             command += "wgms3d"
 
@@ -103,7 +99,7 @@ class Simulation:
         if self.radius:
             command += " -R {:e}".format(self.radius)
 
-        command += " -g {}".format(self.filenamePrefix + "geometry.mgp")  # add geometry info
+        command += f" -g {self.filenamePrefix}geometry.mgp"
         command += " -l {:e}".format(self.wavelength)  # add wavelength info
         command += " -U xx.txt -V yy.txt"  # add grid info
         command += " -e -E -F -G -H"  # specify to output all fields
@@ -143,7 +139,7 @@ class Simulation:
             raise ValueError('you must run a simulation first')
 
         modeNumber = "{0:0=2d}".format(modeNumber)
-        filename = '{}{}-{}.bin'.format(self.folderName, basename, modeNumber)
+        filename = f'{self.folderName}{basename}-{modeNumber}.bin'
         numX = self.xGrid.shape[0]
         numY = self.yGrid.shape[0]
         data = np.fromfile(filename, np.float64)
@@ -211,7 +207,7 @@ class Simulation:
         if not self.simRun:
             raise ValueError('you must run a simulation first')
 
-        filename = '{}epsis.bin'.format(self.folderName)
+        filename = f'{self.folderName}epsis.bin'
         numX = self.xGrid.size
         numY = self.yGrid.size
         data = np.fromfile(filename, np.float64)
@@ -258,8 +254,15 @@ class Simulation:
 
     def makeGrid(self):
         """Create the grid files for use by WGMS3D."""
-        np.savetxt(self.folderName +'xx.txt', np.insert(self.xGrid, 0, int(self.xGrid.size), axis=0))
-        np.savetxt(self.folderName +'yy.txt', np.insert(self.yGrid, 0, int(self.yGrid.size), axis=0))
+        np.savetxt(
+            f'{self.folderName}xx.txt',
+            np.insert(self.xGrid, 0, int(self.xGrid.size), axis=0),
+        )
+
+        np.savetxt(
+            f'{self.folderName}yy.txt',
+            np.insert(self.yGrid, 0, int(self.yGrid.size), axis=0),
+        )
 
     def plotGeometry(self, showGrid=True):
         """Plot the eps (the geometry) over the grid.
@@ -296,7 +299,7 @@ class Simulation:
         #titles = ['$H_x$','$H_y$','$H_z$','$E_x$','$E_y$','$E_z$']
         if showGeometry:
             eps = self.getEps()
-        
+
         xnew = np.arange(self.xGrid[0],self.xGrid[-1],1/res)
         ynew = np.arange(self.yGrid[0],self.yGrid[-1],1/res)
         for k in range(6):
@@ -310,7 +313,7 @@ class Simulation:
             v = max( abs(temp_field.min()), abs(temp_field.max()) )
 
             f = interpolate.interp2d(self.xGrid, self.yGrid, np.flipud(temp_field), kind='cubic')
-            
+
             plt.imshow(f(xnew,ynew), cmap='RdBu', vmin=-v, vmax=v)
             plt.colorbar(fraction=0.046, pad=0.04)
             plt.axis('off')
@@ -343,16 +346,14 @@ class Boundaries():
 
         The default is no boundary, so no flag.
         """
-        command = ""
-        return command
+        return ""
 
 
 class Magnetic(Boundaries):
     """Defines magnetic boundary conditions to WGMS3D."""
     def output_command(self):
         """Return the flag syntax to specify the boundary condition to WGMS3D."""
-        command = " -M {}".format(self.location.value)
-        return command
+        return f" -M {self.location.value}"
 
 
 class PML(Boundaries):
@@ -364,8 +365,7 @@ class PML(Boundaries):
 
     def output_command(self):
         """Return the flag syntax to specify the boundary condition to WGMS3D."""
-        command = " -P {}:{}:{}".format(self.location.value, self.thickness, self.strength)
-        return command
+        return f" -P {self.location.value}:{self.thickness}:{self.strength}"
 
 # --------------------------------------------------------------------- #
 # Utility routines
@@ -387,15 +387,14 @@ def fresnel_transmission(mode1,mode2):
     n1 = mode1.neff
     n2 = mode2.neff
     T = 1-np.abs((n1-n2)/(n1+n2))**2
-    print("T, {}".format(T))
+    print(f"T, {T}")
     return T
 
 def power_coupling(mode1,mode2,xgrid,ygrid):
     overlap = overlap_integral(mode1,mode2,xgrid,ygrid)
     fresnel = fresnel_transmission(mode1,mode2)
     loss = overlap * fresnel
-    loss_db = -10*np.log10(loss)
-    return loss_db
+    return -10*np.log10(loss)
 
 def makeGrid(xs,hs):
     grid = [min(xs)]
