@@ -408,7 +408,7 @@ def check_nonnegative(prop, val):
         ValueError: if val < 0.
     """
     if val < 0:
-        raise ValueError("{} cannot be negative. Got {}".format(prop, val))
+        raise ValueError(f"{prop} cannot be negative. Got {val}")
     return val
 
 
@@ -477,7 +477,7 @@ class Vector3(object):
         elif isinstance(other, Number):
             return self.scale(other)
         else:
-            raise TypeError("no operation known for 'Vector3 * {}'".format(type(other)))
+            raise TypeError(f"no operation known for 'Vector3 * {type(other)}'")
 
     def __truediv__(self, other):
         """Suitably broadcast the division based on type.
@@ -492,7 +492,7 @@ class Vector3(object):
         elif isinstance(other, Number):
             return Vector3(self.x / other, self.y / other, self.z / other)
         else:
-            raise TypeError("no operation known for 'Vector3 / {}'".format(type(other)))
+            raise TypeError(f"no operation known for 'Vector3 / {type(other)}'")
 
     def __rmul__(self, other):
         """Broadcast the multiplication by a number to each element of the vector.
@@ -505,7 +505,7 @@ class Vector3(object):
         if isinstance(other, Number):
             return self.scale(other)
         else:
-            raise TypeError("no operation known for '{} * Vector3'".format(type(other)))
+            raise TypeError(f"no operation known for '{type(other)} * Vector3'")
 
     def __getitem__(self, i):
         """Order the dimensions and allow indexing for values.
@@ -523,14 +523,14 @@ class Vector3(object):
             return self.y
         elif i == 2:
             return self.z
-        raise IndexError("no value for index {}".format(i))
+        raise IndexError(f"no value for index {i}")
 
     def __repr__(self):
         """Create a string representation of the vector.
 
         Returns:
             (str): string representation."""
-        return "Vector3<{}, {}, {}>".format(self.x, self.y, self.z)
+        return f"Vector3<{self.x}, {self.y}, {self.z}>"
 
     def __array__(self):
         """Create a NumPy array from the vector.
